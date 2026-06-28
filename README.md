@@ -4,31 +4,29 @@ A progressive web app for tracking your 40+ muscle-building workouts with rest t
 
 ## 📱 How to Install on Your Phone
 
-### **Option 1: Direct Web App (Recommended)**
-1. Open this on your phone: https://ecastroflorio.github.io/Allenamento-40/
-2. Look for the **share button** (or menu icon)
-3. Choose **"Add to Home Screen"** / **"Install"**
-4. The app appears on your home screen!
+### **Android Chrome**
+1. **Open Chrome** on your Android phone
+2. Go to: `https://raw.githubusercontent.com/ecastroflorio/Allenamento-40/main/index.html`
+3. Wait for the page to load (10-15 seconds)
+4. Tap the **⋮ menu** (three dots, top right)
+5. Tap **"Add to home screen"**
+6. Choose a name and tap **"Add"**
+7. ✅ App is now on your home screen!
 
-### **Option 2: If You Can't Find Install Button**
+### **iPhone Safari**
+1. Open **Safari** on your iPhone
+2. Go to: `https://raw.githubusercontent.com/ecastroflorio/Allenamento-40/main/index.html`
+3. Wait for the page to load
+4. Tap the **share icon** (↑ arrow at bottom center)
+5. Scroll down and tap **"Add to Home Screen"**
+6. Tap **"Add"**
+7. ✅ App is now on your home screen!
 
-**Android Chrome:**
-- Open the page on your phone
-- Tap the **⋮ menu** (top right)
-- Tap **"Add to home screen"**
-- Wait a few seconds, then confirm
-
-**iPhone Safari:**
-- Open the page on your phone
-- Tap the **share icon** (box with arrow)
-- Scroll down and tap **"Add to Home Screen"**
-- Choose where to save it
-
-### **Option 3: Simple Bookmark**
-If installation isn't working, just bookmark the page:
-- Open: https://ecastroflorio.github.io/Allenamento-40/
-- Bookmark it to your home screen
-- Tap it anytime to use the app
+### **Alternative Method (Both Phones)**
+If the above method doesn't work, try:
+1. Open: `https://ecastroflorio.github.io/Allenamento-40/`
+2. Bookmark to home screen
+3. Use it anytime
 
 ---
 
@@ -76,8 +74,9 @@ If installation isn't working, just bookmark the page:
 
 ## 🚀 Quick Links
 
-- **Use Now:** https://ecastroflorio.github.io/Allenamento-40/
-- **GitHub:** https://github.com/ecastroflorio/Allenamento-40
+- **Direct Link:** https://raw.githubusercontent.com/ecastroflorio/Allenamento-40/main/index.html
+- **GitHub Pages:** https://ecastroflorio.github.io/Allenamento-40/
+- **Repository:** https://github.com/ecastroflorio/Allenamento-40
 
 ---
 
