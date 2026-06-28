@@ -1,10 +1,733 @@
-# MASSA 40+ Workout Tracker
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Massa 40+" />
+  <meta name="theme-color" content="#0A0A0A" />
+  <meta name="description" content="Track your workouts with precision - rest timers, progression advice, and volume tracking" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230A0A0A' width='192' height='192'/><text x='50%' y='50%' font-size='80' font-weight='bold' fill='%23C0392B' text-anchor='middle' dominant-baseline='middle' font-family='system-ui'>M</text><text x='50%' y='75%' font-size='24' fill='%23E8E4DC' text-anchor='middle' font-family='system-ui'>40+</text></svg>" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%230A0A0A' width='180' height='180' rx='40'/><text x='90' y='60' font-size='70' font-weight='bold' fill='%23C0392B' text-anchor='middle' dominant-baseline='middle' font-family='system-ui'>M</text><text x='90' y='85' font-size='22' fill='%23E8E4DC' text-anchor='middle' font-family='system-ui'>40+</text></svg>" />
+  <title>MASSA 40+ · Workout Tracker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; width: 100%; }
+    body { 
+      background: #0A0A0A; 
+      color: #E8E4DC; 
+      font-family: -apple-system, 'Inter', 'Helvetica Neue', Arial, sans-serif;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-user-drag: none;
+      position: fixed;
+      overflow: hidden;
+    }
+    input[type=number] { -moz-appearance: textfield; }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    #root { 
+      min-height: 100vh; 
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 0;
+    }
 
-Your workout tracker app is now live! 
+    @keyframes countdown-ring {
+      from { stroke-dashoffset: 0; }
+      to { stroke-dashoffset: 283; }
+    }
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(192,57,43,0.4); }
+      50% { box-shadow: 0 0 0 12px rgba(192,57,43,0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.92); }
+      to { opacity: 1; transform: scale(1); }
+    }
 
-**👉 OPEN THIS LINK ON YOUR PHONE:**
-## https://ecastroflorio.github.io/Allenamento-40/
+    .install-prompt {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #111;
+      border-top: 1px solid #2a2a2a;
+      padding: 12px 16px 20px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 1000;
+      animation: slideUp 0.3s ease;
+    }
 
-Or scan this QR code on your phone camera or any QR scanner app.
+    .install-prompt-content {
+      flex: 1;
+    }
 
-No installation needed - it works in your browser!
+    .install-prompt-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #ddd;
+      margin-bottom: 2px;
+    }
+
+    .install-prompt-desc {
+      font-size: 11px;
+      color: #666;
+    }
+
+    .install-prompt-button {
+      background: #C0392B;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 16px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .install-prompt-close {
+      background: none;
+      border: none;
+      color: #555;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px 8px;
+      flex-shrink: 0;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<div id="install-prompt-container"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => {
+      console.log('ServiceWorker registration failed: ', err);
+    });
+  });
+}
+
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  showInstallPrompt();
+});
+
+function showInstallPrompt() {
+  const container = document.getElementById('install-prompt-container');
+  const prompt = document.createElement('div');
+  prompt.className = 'install-prompt';
+  prompt.innerHTML = `
+    <div class="install-prompt-content">
+      <div class="install-prompt-title">Installa l'app</div>
+      <div class="install-prompt-desc">Aggiungi alla home screen per accesso rapido</div>
+    </div>
+    <button class="install-prompt-button" id="install-btn">Installa</button>
+    <button class="install-prompt-close" id="close-btn">✕</button>
+  `;
+  container.appendChild(prompt);
+
+  document.getElementById('install-btn').addEventListener('click', () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(choiceResult => {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('User accepted install');
+        }
+        deferredPrompt = null;
+        prompt.remove();
+      });
+    }
+  });
+
+  document.getElementById('close-btn').addEventListener('click', () => {
+    prompt.remove();
+  });
+}
+
+window.addEventListener('appinstalled', () => {
+  const container = document.getElementById('install-prompt-container');
+  container.innerHTML = '';
+  deferredPrompt = null;
+});
+</script>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
+
+const WORKOUT_PLAN = {
+  A: {
+    label: "Giorno A", focus: "Petto · Spalle · Tricipiti", color: "#C0392B",
+    exercises: [
+      { id: "bench",      name: "Panca Piana",      defaultSets: 4, targetReps: 8,  restSeconds: 180 },
+      { id: "ohp",        name: "Lento Avanti",      defaultSets: 3, targetReps: 10, restSeconds: 120 },
+      { id: "crossover",  name: "Croci ai Cavi",     defaultSets: 3, targetReps: 12, restSeconds: 60  },
+      { id: "lateral",    name: "Alzate Laterali",   defaultSets: 3, targetReps: 15, restSeconds: 60  },
+      { id: "frenchpress",name: "French Press EZ",   defaultSets: 3, targetReps: 12, restSeconds: 90  },
+    ],
+  },
+  B: {
+    label: "Giorno B", focus: "Schiena · Bicipiti · Femorali", color: "#1A6B3A",
+    exercises: [
+      { id: "deadlift",   name: "Stacco da Terra",        defaultSets: 4, targetReps: 6,  restSeconds: 180 },
+      { id: "pullup",     name: "Lat Machine / Trazioni", defaultSets: 4, targetReps: 8,  restSeconds: 120 },
+      { id: "row",        name: "Rematore Bilanciere",    defaultSets: 3, targetReps: 10, restSeconds: 120 },
+      { id: "curl",       name: "Curl EZ Bar",            defaultSets: 3, targetReps: 10, restSeconds: 60  },
+      { id: "legcurl",    name: "Leg Curl",               defaultSets: 3, targetReps: 12, restSeconds: 60  },
+    ],
+  },
+  C: {
+    label: "Giorno C", focus: "Gambe · Glutei · Core", color: "#1C5BA0",
+    exercises: [
+      { id: "squat",    name: "Squat Bilanciere",      defaultSets: 4, targetReps: 8,  restSeconds: 180 },
+      { id: "legpress", name: "Leg Press",             defaultSets: 3, targetReps: 12, restSeconds: 120 },
+      { id: "lunges",   name: "Affondi con Manubri",   defaultSets: 3, targetReps: 10, restSeconds: 90  },
+      { id: "calf",     name: "Calf Raise",            defaultSets: 4, targetReps: 15, restSeconds: 60  },
+      { id: "plank",    name: "Plank / Rollout",       defaultSets: 3, targetReps: 0,  restSeconds: 60  },
+    ],
+  },
+};
+
+const STORAGE_KEY = "workout-tracker-v1";
+function loadData() {
+  try { const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : { sessions: [] }; }
+  catch { return { sessions: [] }; }
+}
+function saveData(d) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch {} }
+function totalKg(sets) { return sets.reduce((a, s) => a + (parseFloat(s.weight)||0)*(parseInt(s.reps)||0), 0); }
+
+function progressionAdvice(exerciseId, sessions, targetReps) {
+  const relevant = sessions.filter(s => s.exercises.some(e => e.id === exerciseId)).slice(-3);
+  if (relevant.length < 2) return null;
+  const lastEx = relevant[relevant.length-1].exercises.find(e => e.id === exerciseId);
+  const prevEx = relevant[relevant.length-2].exercises.find(e => e.id === exerciseId);
+  if (!lastEx || !prevEx) return null;
+  const lastSets = lastEx.sets.filter(s => s.completed);
+  const prevSets = prevEx.sets.filter(s => s.completed);
+  if (!lastSets.length || !prevSets.length) return null;
+  const allRepsHit = targetReps > 0 && lastSets.every(s => parseInt(s.reps) >= targetReps);
+  const lastAvgW = lastSets.reduce((a,s)=>a+parseFloat(s.weight||0),0)/lastSets.length;
+  const prevAvgW = prevSets.reduce((a,s)=>a+parseFloat(s.weight||0),0)/prevSets.length;
+  const kgDiff = totalKg(lastSets) - totalKg(prevSets);
+  if (allRepsHit && lastAvgW <= prevAvgW) return { type:"increase", msg:`Tutte le serie a ${targetReps} reps → aumenta di 2.5kg!` };
+  if (lastAvgW > prevAvgW) return { type:"good", msg:`Peso aumentato (${kgDiff>=0?'+':''}${kgDiff.toFixed(0)}kg volume). Ottimo!` };
+  if (kgDiff < 0) return { type:"warn", msg:`Volume in calo. Controlla recupero e sonno.` };
+  return { type:"neutral", msg:`Stesso carico. Prova ad aumentare i reps prima di alzare il peso.` };
+}
+
+function RestTimer({ seconds, color, exerciseName, onDone, onSkip }) {
+  const [remaining, setRemaining] = useState(seconds);
+  const [paused, setPaused] = useState(false);
+  const intervalRef = useRef(null);
+  const total = seconds;
+
+  useEffect(() => {
+    if (paused) return;
+    intervalRef.current = setInterval(() => {
+      setRemaining(r => {
+        if (r <= 1) { clearInterval(intervalRef.current); onDone(); return 0; }
+        return r - 1;
+      });
+    }, 1000);
+    return () => clearInterval(intervalRef.current);
+  }, [paused]);
+
+  useEffect(() => {
+    if (remaining <= 3 && remaining > 0) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = remaining === 1 ? 880 : 660;
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+        osc.start(); osc.stop(ctx.currentTime + 0.15);
+      } catch {}
+    }
+    if (remaining === 0) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        [0, 0.18, 0.36].forEach(delay => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.frequency.value = 880;
+          gain.gain.setValueAtTime(0.4, ctx.currentTime + delay);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.25);
+          osc.start(ctx.currentTime + delay); osc.stop(ctx.currentTime + delay + 0.25);
+        });
+      } catch {}
+    }
+  }, [remaining]);
+
+  const pct = remaining / total;
+  const radius = 90;
+  const circ = 2 * Math.PI * radius;
+  const dash = circ * (1 - pct);
+  const mins = Math.floor(remaining / 60);
+  const secs = remaining % 60;
+
+  return (
+    <div style={{
+      position:"fixed", inset:0, zIndex:9000,
+      background:"rgba(0,0,0,0.93)",
+      display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+      animation:"fadeIn 0.2s ease",
+    }}>
+      <div style={{fontSize:11,color:"#555",letterSpacing:"0.2em",textTransform:"uppercase",marginBottom:6}}>Recupero</div>
+      <div style={{fontSize:15,fontWeight:700,color:"#888",marginBottom:32,maxWidth:240,textAlign:"center",lineHeight:1.3}}>{exerciseName}</div>
+
+      <div style={{position:"relative",width:220,height:220,marginBottom:32}}>
+        <svg width="220" height="220" style={{transform:"rotate(-90deg)"}}>
+          <circle cx="110" cy="110" r={radius} fill="none" stroke="#1a1a1a" strokeWidth="10"/>
+          <circle
+            cx="110" cy="110" r={radius} fill="none"
+            stroke={color} strokeWidth="10"
+            strokeLinecap="round"
+            strokeDasharray={circ}
+            strokeDashoffset={dash}
+            style={{transition:"stroke-dashoffset 0.9s linear"}}
+          />
+        </svg>
+        <div style={{
+          position:"absolute", inset:0,
+          display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+        }}>
+          <div style={{
+            fontSize: remaining < 10 ? 64 : 52,
+            fontWeight:800, color: remaining <= 10 ? color : "#fff",
+            letterSpacing:"-0.04em", lineHeight:1,
+            transition:"color 0.3s, font-size 0.2s",
+          }}>
+            {mins > 0 ? `${mins}:${secs.toString().padStart(2,'0')}` : secs}
+          </div>
+          <div style={{fontSize:12,color:"#444",marginTop:4}}>
+            {mins > 0 ? "min" : "sec"}
+          </div>
+        </div>
+      </div>
+
+      <div style={{display:"flex",gap:12,marginBottom:16}}>
+        <button onClick={() => setPaused(p=>!p)} style={{
+          background:"#1a1a1a", border:"1px solid #2a2a2a",
+          borderRadius:10, padding:"12px 28px",
+          color:"#ccc", fontSize:14, fontWeight:600, cursor:"pointer",
+        }}>
+          {paused ? "▶ Riprendi" : "⏸ Pausa"}
+        </button>
+        <button onClick={onSkip} style={{
+          background:color+"22", border:`1px solid ${color}55`,
+          borderRadius:10, padding:"12px 28px",
+          color:color, fontSize:14, fontWeight:600, cursor:"pointer",
+        }}>
+          Salta →
+        </button>
+      </div>
+
+      <div style={{display:"flex",gap:8,alignItems:"center"}}>
+        {[-30,-15,+15,+30].map(d => (
+          <button key={d} onClick={() => setRemaining(r => Math.max(1, r+d))} style={{
+            background:"#111", border:"1px solid #222", borderRadius:7,
+            padding:"7px 11px", color:"#555", fontSize:12, cursor:"pointer",
+          }}>{d>0?"+":""}{d}s</button>
+        ))}
+      </div>
+      <div style={{fontSize:10,color:"#333",marginTop:10}}>Regola il tempo</div>
+    </div>
+  );
+}
+
+function SetRow({ set, idx, color, onUpdate, onRemove, onCompleteWithTimer }) {
+  const handleCircleClick = () => {
+    const newCompleted = !set.completed;
+    onUpdate(idx, "completed", newCompleted);
+    if (newCompleted) onCompleteWithTimer(idx);
+  };
+
+  return (
+    <div style={{ display:"grid", gridTemplateColumns:"28px 1fr 1fr auto", gap:8, alignItems:"center", padding:"6px 0", opacity: set.completed ? 0.5 : 1, transition:"opacity 0.2s" }}>
+      <div onClick={handleCircleClick} style={{
+        width:26, height:26, borderRadius:"50%",
+        background: set.completed ? color : "#1a1a1a",
+        border:`1.5px solid ${set.completed ? color : "#333"}`,
+        display:"flex", alignItems:"center", justifyContent:"center",
+        fontSize:10, fontWeight:700, color: set.completed ? "#fff" : "#555",
+        cursor:"pointer", flexShrink:0, transition:"all 0.15s",
+      }}>
+        {set.completed ? "✓" : idx+1}
+      </div>
+      <div style={{position:"relative"}}>
+        <input type="number" value={set.weight} onChange={e => onUpdate(idx,"weight",e.target.value)} placeholder="kg"
+          style={{ width:"100%", background:"#0e0e0e", border:"1px solid #2a2a2a", borderRadius:6, padding:"9px 30px 9px 10px", color:"#e8e4dc", fontSize:15, fontWeight:600, outline:"none" }} />
+        <span style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",fontSize:10,color:"#444"}}>kg</span>
+      </div>
+      <div style={{position:"relative"}}>
+        <input type="number" value={set.reps} onChange={e => onUpdate(idx,"reps",e.target.value)} placeholder="reps"
+          style={{ width:"100%", background:"#0e0e0e", border:"1px solid #2a2a2a", borderRadius:6, padding:"9px 30px 9px 10px", color:"#e8e4dc", fontSize:15, fontWeight:600, outline:"none" }} />
+        <span style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",fontSize:10,color:"#444"}}>×</span>
+      </div>
+      <button onClick={() => onRemove(idx)} style={{ background:"none", border:"none", color:"#444", cursor:"pointer", fontSize:16, padding:"4px 6px" }}>✕</button>
+    </div>
+  );
+}
+
+function ExerciseCard({ exercise, day, sessions, activeExId, setActiveExId, onSetsChange, currentSets, onStartTimer }) {
+  const dayColor = WORKOUT_PLAN[day].color;
+  const isOpen = activeExId === exercise.id;
+  const advice = progressionAdvice(exercise.id, sessions, exercise.targetReps);
+  const exKg = totalKg(currentSets);
+  const completedSets = currentSets.filter(s => s.completed).length;
+
+  const updateSet = (idx, field, val) => {
+    onSetsChange(exercise.id, currentSets.map((s,i) => i===idx ? {...s,[field]:val} : s));
+  };
+  const addSet = () => {
+    const last = currentSets[currentSets.length-1];
+    onSetsChange(exercise.id, [...currentSets, { weight:last?.weight||"", reps:last?.reps||exercise.targetReps||"", completed:false }]);
+  };
+  const removeSet = (idx) => onSetsChange(exercise.id, currentSets.filter((_,i) => i!==idx));
+
+  const handleCompleteWithTimer = (idx) => {
+    const isLastSet = idx === currentSets.length - 1;
+    onStartTimer(exercise.restSeconds, exercise.name, isLastSet);
+  };
+
+  return (
+    <div style={{ background:"#111", border:`1px solid ${isOpen?dayColor+"55":"#1c1c1c"}`, borderRadius:10, overflow:"hidden", marginBottom:8 }}>
+      <button onClick={() => setActiveExId(isOpen ? null : exercise.id)}
+        style={{ width:"100%", background:"none", border:"none", padding:"14px", cursor:"pointer", display:"flex", alignItems:"center", gap:10, textAlign:"left" }}>
+        <div style={{
+          width:8, height:8, borderRadius:"50%", flexShrink:0,
+          background: completedSets===currentSets.length && completedSets>0 ? "#27AE60" : completedSets>0 ? dayColor : "#2a2a2a",
+          transition:"background 0.2s",
+        }}/>
+        <div style={{flex:1}}>
+          <div style={{fontSize:14,fontWeight:700,color:"#ddd"}}>{exercise.name}</div>
+          <div style={{fontSize:11,color:"#555",marginTop:2}}>
+            {completedSets}/{currentSets.length} serie
+            {exercise.targetReps>0 && ` · target ${exercise.targetReps} reps`}
+            <span style={{color:"#333"}}> · ⏱ {exercise.restSeconds>=60?`${exercise.restSeconds/60}'`:`${exercise.restSeconds}"`} riposo</span>
+          </div>
+        </div>
+        <div style={{textAlign:"right",flexShrink:0}}>
+          {exKg>0 && <div style={{fontSize:13,fontWeight:700,color:dayColor}}>{exKg.toLocaleString()}kg</div>}
+          <div style={{fontSize:11,color:"#444"}}>{isOpen?"▲":"▼"}</div>
+        </div>
+      </button>
+
+      {isOpen && (
+        <div style={{padding:"0 14px 14px"}}>
+          {advice && (
+            <div style={{
+              marginBottom:10, padding:"9px 12px", borderRadius:6, fontSize:12, lineHeight:1.5,
+              background: advice.type==="increase"?"#0d1f0a":advice.type==="good"?"#0a1a0d":advice.type==="warn"?"#1f1005":"#111",
+              border:`1px solid ${advice.type==="increase"?"#2d5a1b":advice.type==="good"?"#1a4a25":advice.type==="warn"?"#5a2e05":"#222"}`,
+              color: advice.type==="increase"?"#7EC850":advice.type==="good"?"#4CAF50":advice.type==="warn"?"#E67E22":"#666",
+            }}>
+              {advice.type==="increase"?"🔺":advice.type==="good"?"✅":advice.type==="warn"?"⚠️":"📊"} {advice.msg}
+            </div>
+          )}
+
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10,padding:"8px 10px",background:"#0d0d0d",borderRadius:6,border:"1px solid #1a1a1a"}}>
+            <span style={{fontSize:11,color:"#555",flexShrink:0}}>⏱ Riposo:</span>
+            {[60,90,120,150,180].map(s => (
+              <button key={s} style={{
+                background: exercise.restSeconds===s ? dayColor : "#1a1a1a",
+                color: exercise.restSeconds===s ? "#fff" : "#555",
+                border:`1px solid ${exercise.restSeconds===s ? dayColor : "#2a2a2a"}`,
+                borderRadius:5, padding:"4px 8px", fontSize:11, fontWeight:600, cursor:"pointer",
+                transition:"all 0.15s",
+              }} onClick={() => { exercise.restSeconds = s; }}>
+                {s>=60?`${s/60}'`:s+'\"'}
+              </button>
+            ))}
+          </div>
+
+          <div style={{borderTop:"1px solid #1a1a1a",paddingTop:10,marginBottom:4}}>
+            <div style={{display:"grid",gridTemplateColumns:"28px 1fr 1fr auto",gap:8,marginBottom:4}}>
+              <div/>
+              <div style={{fontSize:9,color:"#444",textTransform:"uppercase",letterSpacing:"0.1em",paddingLeft:10}}>Peso</div>
+              <div style={{fontSize:9,color:"#444",textTransform:"uppercase",letterSpacing:"0.1em",paddingLeft:10}}>Reps</div>
+              <div/>
+            </div>
+            {currentSets.map((set,i) => (
+              <SetRow key={i} set={set} idx={i} color={dayColor}
+                onUpdate={updateSet} onRemove={removeSet}
+                onCompleteWithTimer={handleCompleteWithTimer} />
+            ))}
+          </div>
+          <button onClick={addSet} style={{
+            marginTop:6, width:"100%", background:"none",
+            border:`1px dashed ${dayColor}55`, borderRadius:6,
+            color:dayColor, fontSize:12, fontWeight:600, padding:"8px", cursor:"pointer",
+          }}>+ Aggiungi serie</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function App() {
+  const [data, setData] = useState(() => loadData());
+  const [activeDay, setActiveDay] = useState("A");
+  const [view, setView] = useState("workout");
+  const [activeExId, setActiveExId] = useState(null);
+  const [sessionStarted, setSessionStarted] = useState(false);
+  const [currentSets, setCurrentSets] = useState({});
+  const [toast, setToast] = useState(null);
+  const [timer, setTimer] = useState(null);
+
+  const day = WORKOUT_PLAN[activeDay];
+
+  useEffect(() => {
+    const init = {};
+    day.exercises.forEach(ex => {
+      init[ex.id] = Array.from({ length: ex.defaultSets }, (_, i) => {
+        const lastSession = [...data.sessions].reverse().find(s => s.day===activeDay && s.exercises.some(e => e.id===ex.id));
+        const lastEx = lastSession?.exercises.find(e => e.id===ex.id);
+        return { weight: lastEx?.sets?.[i]?.weight||"", reps: ex.targetReps||"", completed: false };
+      });
+    });
+    setCurrentSets(init);
+    setActiveExId(null);
+    setSessionStarted(false);
+  }, [activeDay]);
+
+  const totalSessionKg = Object.values(currentSets).reduce((acc,sets) => acc+totalKg(sets.filter(s=>s.completed)),0);
+  const totalCompletedSets = Object.values(currentSets).reduce((acc,sets) => acc+sets.filter(s=>s.completed).length,0);
+
+  const onSetsChange = useCallback((exId, sets) => {
+    setCurrentSets(prev => ({...prev,[exId]:sets}));
+    if (!sessionStarted) setSessionStarted(true);
+  }, [sessionStarted]);
+
+  const showToast = (msg) => { setToast(msg); setTimeout(()=>setToast(null),2500); };
+
+  const startTimer = (seconds, exerciseName, isLastSet) => {
+    if (isLastSet) return;
+    setTimer({ seconds, exerciseName, color: day.color });
+  };
+
+  const finishSession = () => {
+    const sessionExercises = day.exercises.map(ex => ({
+      id:ex.id, name:ex.name, sets:currentSets[ex.id]||[],
+    })).filter(ex => ex.sets.some(s=>s.completed));
+    if (!sessionExercises.length) { showToast("Completa almeno una serie prima di salvare"); return; }
+    const session = { id:Date.now(), day:activeDay, date:new Date().toISOString(), totalKg:totalSessionKg, exercises:sessionExercises };
+    const newData = {...data, sessions:[...data.sessions,session]};
+    setData(newData); saveData(newData);
+    showToast(`✅ Sessione salvata! ${totalSessionKg.toLocaleString()} kg totali`);
+    setSessionStarted(false);
+  };
+
+  const clearHistory = () => {
+    if (!confirm("Sei sicuro? Tutti i dati verranno eliminati.")) return;
+    const nd = { sessions:[] }; setData(nd); saveData(nd); showToast("Storico eliminato");
+  };
+
+  const pastSessions = [...data.sessions].reverse();
+
+  return (
+    <div style={{ background:"#0A0A0A", minHeight:"100vh", paddingBottom:80 }}>
+
+      {timer && (
+        <RestTimer
+          seconds={timer.seconds}
+          color={timer.color}
+          exerciseName={timer.exerciseName}
+          onDone={() => setTimer(null)}
+          onSkip={() => setTimer(null)}
+        />
+      )}
+
+      {toast && (
+        <div style={{
+          position:"fixed",top:20,left:"50%",transform:"translateX(-50%)",
+          background:"#1a1a1a",border:"1px solid #2a2a2a",borderRadius:8,
+          padding:"11px 20px",fontSize:13,color:"#ddd",zIndex:9999,
+          boxShadow:"0 4px 20px rgba(0,0,0,0.6)",whiteSpace:"nowrap",
+        }}>{toast}</div>
+      )}
+
+      <div style={{ background:"#0F0F0F", borderBottom:"1px solid #181818", padding:"20px 16px 14px", position:"sticky", top:0, zIndex:100 }}>
+        <div style={{ maxWidth:640, margin:"0 auto" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+            <div>
+              <div style={{fontSize:10,color:"#444",letterSpacing:"0.2em",textTransform:"uppercase"}}>Tracker</div>
+              <div style={{fontSize:20,fontWeight:800,color:"#fff",letterSpacing:"-0.02em"}}>MASSA 40+</div>
+            </div>
+            {totalSessionKg > 0 && (
+              <div style={{ background:day.color+"20", border:`1px solid ${day.color}44`, borderRadius:8, padding:"8px 14px", textAlign:"center" }}>
+                <div style={{fontSize:10,color:"#555"}}>Volume sessione</div>
+                <div style={{fontSize:22,fontWeight:800,color:day.color,lineHeight:1}}>{totalSessionKg.toLocaleString()} <span style={{fontSize:12}}>kg</span></div>
+              </div>
+            )}
+          </div>
+          <div style={{display:"flex",gap:6}}>
+            {["workout","history"].map(v=>(
+              <button key={v} onClick={()=>setView(v)} style={{
+                background:view===v?"#1a1a1a":"none",
+                border:`1px solid ${view===v?"#2a2a2a":"transparent"}`,
+                borderRadius:6,padding:"6px 14px",
+                color:view===v?"#ddd":"#444",fontSize:12,fontWeight:600,cursor:"pointer",
+              }}>{v==="workout"?"Allenamento":`Storico (${data.sessions.length})`}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={{maxWidth:640,margin:"0 auto",padding:"0 14px"}}>
+
+        {view==="workout" && (
+          <>
+            <div style={{display:"flex",gap:8,marginTop:18,marginBottom:14}}>
+              {Object.entries(WORKOUT_PLAN).map(([key,d])=>(
+                <button key={key} onClick={()=>setActiveDay(key)} style={{
+                  flex:1, background:activeDay===key?d.color:"#111",
+                  color:activeDay===key?"#fff":"#555",
+                  border:`1px solid ${activeDay===key?d.color:"#1e1e1e"}`,
+                  borderRadius:8, padding:"11px 6px", cursor:"pointer", fontSize:14, fontWeight:700,
+                }}>
+                  <div>{key}</div>
+                  <div style={{fontSize:9,fontWeight:400,marginTop:3,opacity:0.7}}>{d.focus.split("·")[0].trim()}</div>
+                </button>
+              ))}
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
+              {[
+                {label:"Serie fatte", value:totalCompletedSets},
+                {label:"Volume kg", value:totalSessionKg.toLocaleString()},
+                {label:"Sessioni", value:data.sessions.filter(s=>s.day===activeDay).length},
+              ].map(({label,value})=>(
+                <div key={label} style={{background:"#0e0e0e",border:"1px solid #1a1a1a",borderRadius:7,padding:"9px 10px",textAlign:"center"}}>
+                  <div style={{fontSize:16,fontWeight:800,color:day.color}}>{value}</div>
+                  <div style={{fontSize:9,color:"#444",marginTop:1,textTransform:"uppercase",letterSpacing:"0.08em"}}>{label}</div>
+                </div>
+              ))}
+            </div>
+
+            {day.exercises.map(ex=>(
+              <ExerciseCard key={ex.id} exercise={ex} day={activeDay} sessions={data.sessions}
+                activeExId={activeExId} setActiveExId={setActiveExId}
+                onSetsChange={onSetsChange} currentSets={currentSets[ex.id]||[]}
+                onStartTimer={startTimer} />
+            ))}
+
+            <button onClick={finishSession} style={{
+              marginTop:14, width:"100%",
+              background:totalCompletedSets>0?day.color:"#1a1a1a",
+              border:"none", borderRadius:10, padding:"16px",
+              color:totalCompletedSets>0?"#fff":"#444",
+              fontSize:15, fontWeight:800, cursor:"pointer", letterSpacing:"0.03em", transition:"all 0.2s",
+            }}>
+              SALVA SESSIONE {totalSessionKg>0?`→ ${totalSessionKg.toLocaleString()} kg`:""}
+            </button>
+          </>
+        )}
+
+        {view==="history" && (
+          <div style={{marginTop:18}}>
+            {pastSessions.length===0 ? (
+              <div style={{textAlign:"center",padding:"60px 20px",color:"#444",fontSize:14}}>
+                <div style={{fontSize:36,marginBottom:12}}>📋</div>
+                Nessuna sessione ancora.<br/>
+                <span style={{fontSize:12}}>Completa il tuo primo allenamento!</span>
+              </div>
+            ) : (
+              <>
+                {data.sessions.length>=2 && (
+                  <div style={{background:"#0e0e0e",border:"1px solid #1a1a1a",borderRadius:10,padding:"14px",marginBottom:14}}>
+                    <div style={{fontSize:10,color:"#444",textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:10}}>Volume ultime sessioni (kg)</div>
+                    <div style={{display:"flex",alignItems:"flex-end",gap:4,height:60}}>
+                      {data.sessions.slice(-12).map((s,i)=>{
+                        const maxKg=Math.max(...data.sessions.slice(-12).map(x=>x.totalKg));
+                        const h=maxKg>0?Math.max(6,(s.totalKg/maxKg)*52):6;
+                        const d2=WORKOUT_PLAN[s.day];
+                        return (
+                          <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+                            <div style={{fontSize:7,color:"#444"}}>{s.totalKg>999?`${(s.totalKg/1000).toFixed(1)}k`:s.totalKg}</div>
+                            <div style={{width:"100%",height:h,background:d2.color,borderRadius:"2px 2px 0 0",opacity:0.85}}/>
+                            <div style={{fontSize:8,color:"#333"}}>{s.day}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {pastSessions.map(session=>{
+                  const d2=WORKOUT_PLAN[session.day];
+                  const date=new Date(session.date);
+                  return (
+                    <div key={session.id} style={{background:"#0e0e0e",border:"1px solid #1a1a1a",borderRadius:10,padding:"14px",marginBottom:8}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                        <div>
+                          <div style={{display:"flex",alignItems:"center",gap:8}}>
+                            <span style={{background:d2.color,color:"#fff",borderRadius:4,padding:"2px 8px",fontSize:11,fontWeight:700}}>{session.day}</span>
+                            <span style={{fontSize:12,color:"#777"}}>{d2.label}</span>
+                          </div>
+                          <div style={{fontSize:11,color:"#444",marginTop:5}}>
+                            {date.toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short"})}
+                            {" · "}{date.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}
+                          </div>
+                        </div>
+                        <div style={{textAlign:"right"}}>
+                          <div style={{fontSize:20,fontWeight:800,color:d2.color}}>{session.totalKg.toLocaleString()}</div>
+                          <div style={{fontSize:9,color:"#444"}}>KG TOTALI</div>
+                        </div>
+                      </div>
+                      {session.exercises.map(ex=>{
+                        const comp=ex.sets.filter(s=>s.completed);
+                        return (
+                          <div key={ex.id} style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#666",padding:"4px 0",borderBottom:"1px solid #141414"}}>
+                            <span>{ex.name}</span>
+                            <span style={{color:"#444"}}>{comp.length} serie · {totalKg(comp)>0?`${totalKg(comp)}kg`:"—"}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+                <button onClick={clearHistory} style={{
+                  marginTop:8,width:"100%",background:"none",
+                  border:"1px solid #2a1010",borderRadius:8,padding:"10px",
+                  color:"#5a2020",fontSize:11,cursor:"pointer",
+                }}>Elimina tutto lo storico</button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
