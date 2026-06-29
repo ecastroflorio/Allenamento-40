@@ -492,6 +492,127 @@ function ExerciseCard({ exercise, day, sessions, activeExId, setActiveExId, onSe
   );
 }
 
+// ─── ANALYTICS CHARTS ─────────────────────────────────────────────────────────
+function AnalyticsView({ sessions }) {
+  const totalKgAllTime = sessions.reduce((a, s) => a + s.totalKg, 0);
+  const avgKgPerSession = sessions.length > 0 ? Math.round(totalKgAllTime / sessions.length) : 0;
+  const maxKgSession = sessions.length > 0 ? Math.max(...sessions.map(s => s.totalKg)) : 0;
+  
+  // Get day breakdown
+  const dayBreakdown = { A: 0, B: 0, C: 0, countA: 0, countB: 0, countC: 0 };
+  sessions.forEach(s => {
+    dayBreakdown[s.day] += s.totalKg;
+    dayBreakdown['count' + s.day] += 1;
+  });
+
+  // Get last 30 sessions for trend
+  const last30 = sessions.slice(-30);
+  
+  return (
+    <div style={{marginTop:18}}>
+      {sessions.length === 0 ? (
+        <div style={{textAlign:"center",padding:"60px 20px",color:"#444",fontSize:14}}>
+          <div style={{fontSize:36,marginBottom:12}}>📊</div>
+          Nessun dato disponibile.<br/>
+          <span style={{fontSize:12}}>Completa alcuni allenamenti per vedere le statistiche!</span>
+        </div>
+      ) : (
+        <>
+          {/* KPI Cards */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+            <div style={{background:"#0e0e0e",border:"1px solid #1a1a1a",borderRadius:10,padding:"14px",textAlign:"center"}}>
+              <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Totale Kg</div>
+              <div style={{fontSize:28,fontWeight:800,color:"#C0392B"}}>{totalKgAllTime.toLocaleString()}</div>
+              <div style={{fontSize:10,color:"#444",marginTop:4}}>{sessions.length} sessioni</div>
+            </div>
+            <div style={{background:"#0e0e0e",border:"1px solid #1a1a1a",borderRadius:10,padding:"14px",textAlign:"center"}}>
+              <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Media per Sessione</div>
+              <div style={{fontSize:28,fontWeight:800,color:"#1A6B3A"}}>{avgKgPerSession.toLocaleString()}</div>
+              <div style={{fontSize:10,color:"#444",marginTop:4}}>kg</div>
+            </div>
+          </div>
+
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+            <div style={{background:"#0e0e0e",border:"1px solid #1a1a1a",borderRadius:10,padding:"14px",textAlign:"center"}}>
+              <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Massimo Sessione</div>
+              <div style={{fontSize:28,fontWeight:800,color:"#1C5BA0"}}>{maxKgSession.toLocaleString()}</div>
+              <div style={{fontSize:10,color:"#444",marginTop:4}}>kg</div>
+            </div>
+            <div style={{background:"#0e0e0e",border:"1px solid #1a1a1a",borderRadius:10,padding:"14px",textAlign:"center"}}>
+              <div style={{fontSize:10,color:"#555",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:6}}>Media Settimanale</div>
+              <div style={{fontSize:28,fontWeight:800,color:"#E67E22"}}>{(avgKgPerSession * 3).toLocaleString()}</div>
+              <div style={{fontSize:10,color:"#444",marginTop:4}}>kg (A-B-C)</div>
+            </div>
+          </div>
+
+          {/* Day Breakdown */}
+          <div style={{background:"#0e0e0e",border:"1px solid #1a1a1a",borderRadius:10,padding:"14px",marginBottom:14}}>
+            <div style={{fontSize:10,color:"#444",textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:10,fontWeight:700}}>Volume per Tipo di Allenamento</div>
+            <div style={{display:"flex",gap:8}}>
+              {[
+                { day: "A", kg: dayBreakdown.A, count: dayBreakdown.countA, color: "#C0392B" },
+                { day: "B", kg: dayBreakdown.B, count: dayBreakdown.countB, color: "#1A6B3A" },
+                { day: "C", kg: dayBreakdown.C, count: dayBreakdown.countC, color: "#1C5BA0" },
+              ].map(d => (
+                <div key={d.day} style={{flex:1,textAlign:"center"}}>
+                  <div style={{fontSize:12,fontWeight:700,color:d.color}}>{d.kg.toLocaleString()} kg</div>
+                  <div style={{fontSize:9,color:"#555"}}>Giorno {d.day}</div>
+                  <div style={{fontSize:8,color:"#333"}}>{d.count} sessioni</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Trend Chart - Last 30 Sessions */}
+          {last30.length >= 2 && (
+            <div style={{background:"#0e0e0e",border:"1px solid #1a1a1a",borderRadius:10,padding:"14px",marginBottom:14}}>
+              <div style={{fontSize:10,color:"#444",textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:10,fontWeight:700}}>Andamento Volume (ultime {last30.length} sessioni)</div>
+              <div style={{display:"flex",alignItems:"flex-end",gap:2,height:100,overflowX:"auto",paddingBottom:8}}>
+                {last30.map((s,i)=>{
+                  const maxKg=Math.max(...last30.map(x=>x.totalKg));
+                  const h=maxKg>0?Math.max(4,(s.totalKg/maxKg)*85):4;
+                  const dayColor=WORKOUT_PLAN[s.day].color;
+                  return (
+                    <div key={i} style={{flex:"0 0 12px",display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                      <div style={{fontSize:6,color:"#333"}}>{s.totalKg>999?`${(s.totalKg/1000).toFixed(1)}k`:s.totalKg}</div>
+                      <div style={{width:"100%",height:h,background:dayColor,borderRadius:"2px 2px 0 0",opacity:0.8}}/>
+                      <div style={{fontSize:6,color:"#333"}}>{s.day}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Detailed Session List */}
+          <div style={{fontSize:10,color:"#444",textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:10,fontWeight:700}}>Tutte le Sessioni</div>
+          {[...sessions].reverse().map(session=>{
+            const d2=WORKOUT_PLAN[session.day];
+            const date=new Date(session.date);
+            return (
+              <div key={session.id} style={{background:"#0e0e0e",border:"1px solid #1a1a1a",borderRadius:10,padding:"12px",marginBottom:8}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                      <span style={{background:d2.color,color:"#fff",borderRadius:4,padding:"2px 8px",fontSize:11,fontWeight:700}}>{session.day}</span>
+                      <span style={{fontSize:10,color:"#666"}}>{date.toLocaleDateString("it-IT",{weekday:"short",day:"numeric",month:"short"})}</span>
+                      <span style={{fontSize:9,color:"#444"}}>{date.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}</span>
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:16,fontWeight:800,color:d2.color}}>{session.totalKg.toLocaleString()}</div>
+                    <div style={{fontSize:8,color:"#444"}}>kg</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </>
+      )}
+    </div>
+  );
+}
+
 function App() {
   const [data, setData] = useState(() => loadData());
   const [activeDay, setActiveDay] = useState("A");
@@ -589,13 +710,15 @@ function App() {
             )}
           </div>
           <div style={{display:"flex",gap:6}}>
-            {["workout","history"].map(v=>(
+            {["workout","history","analytics"].map(v=>(
               <button key={v} onClick={()=>setView(v)} style={{
                 background:view===v?"#1a1a1a":"none",
                 border:`1px solid ${view===v?"#2a2a2a":"transparent"}`,
                 borderRadius:6,padding:"6px 14px",
                 color:view===v?"#ddd":"#444",fontSize:12,fontWeight:600,cursor:"pointer",
-              }}>{v==="workout"?"Allenamento":`Storico (${data.sessions.length})`}</button>
+              }}>
+                {v==="workout"?"Allenamento":v==="history"?`Storico (${data.sessions.length})`:"📊 Grafici"}
+              </button>
             ))}
           </div>
         </div>
@@ -661,25 +784,6 @@ function App() {
               </div>
             ) : (
               <>
-                {data.sessions.length>=2 && (
-                  <div style={{background:"#0e0e0e",border:"1px solid #1a1a1a",borderRadius:10,padding:"14px",marginBottom:14}}>
-                    <div style={{fontSize:10,color:"#444",textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:10}}>Volume ultime sessioni (kg)</div>
-                    <div style={{display:"flex",alignItems:"flex-end",gap:4,height:60}}>
-                      {data.sessions.slice(-12).map((s,i)=>{
-                        const maxKg=Math.max(...data.sessions.slice(-12).map(x=>x.totalKg));
-                        const h=maxKg>0?Math.max(6,(s.totalKg/maxKg)*52):6;
-                        const d2=WORKOUT_PLAN[s.day];
-                        return (
-                          <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
-                            <div style={{fontSize:7,color:"#444"}}>{s.totalKg>999?`${(s.totalKg/1000).toFixed(1)}k`:s.totalKg}</div>
-                            <div style={{width:"100%",height:h,background:d2.color,borderRadius:"2px 2px 0 0",opacity:0.85}}/>
-                            <div style={{fontSize:8,color:"#333"}}>{s.day}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
                 {pastSessions.map(session=>{
                   const d2=WORKOUT_PLAN[session.day];
                   const date=new Date(session.date);
@@ -721,6 +825,10 @@ function App() {
               </>
             )}
           </div>
+        )}
+
+        {view==="analytics" && (
+          <AnalyticsView sessions={data.sessions} />
         )}
       </div>
     </div>
